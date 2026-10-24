@@ -1,0 +1,4 @@
+# Data Deletion Audit Agent & Chatbot
+# Zero external runtime dependencies required.
+# Fully self-contained using Python standard library (3.8+).
+

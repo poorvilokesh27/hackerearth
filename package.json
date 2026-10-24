@@ -1,0 +1,22 @@
+{
+  "name": "ghost-data-deletion-audit-agent",
+  "version": "1.0.0",
+  "description": "Data Deletion Audit Agent & Interactive Chatbot Web App",
+  "scripts": {
+    "dev": "python code/chatbot_server.py --port 8000",
+    "start": "python code/chatbot_server.py --port 8000",
+    "audit": "python code/main.py",
+    "eval": "python code/evaluation/main.py",
+    "test": "python code/evaluation/main.py"
+  },
+  "keywords": [
+    "deletion",
+    "audit",
+    "privacy",
+    "gdpr",
+    "agent"
+  ],
+  "author": "",
+  "license": "ISC"
+}
+

@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Deletion Audit Agent — AI Privacy Chatbot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-chat: #182234;
+      --border: #334155;
+      --primary: #38bdf8;
+      --primary-hover: #0ea5e9;
+      --accent: #818cf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Inter', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--sans);
+      background-color: var(--bg-dark);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Sidebar / Navigation */
+    .sidebar {
+      width: 280px;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .nav-item:hover, .nav-item.active {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--primary);
+    }
+
+    .sidebar-stats {
+      padding: 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+    }
+
+    .stat-val {
+      font-weight: 600;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+
+    /* Main Area */
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .header-bar {
+      padding: 14px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-card);
+    }
+
+    .header-left h1 {
+      font-size: 17px;
+      font-weight: 600;
+    }
+
+    .action-btns {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #0f172a;
+      border: none;
+      font-weight: 600;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      color: #0f172a;
+    }
+
+    /* Content Views */
+    .view-panel {
+      display: none;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .view-panel.active {
+      display: flex;
+    }
+
+    /* Chat View */
+    .chat-layout {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message {
+      display: flex;
+      gap: 14px;
+      max-width: 85%;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+    }
+
+    .msg-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .message.user .msg-avatar {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .message.assistant .msg-avatar {
+      background: var(--primary);
+      color: #0f172a;
+    }
+
+    .msg-content {
+      background: var(--bg-chat);
+      border: 1px solid var(--border);
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .message.user .msg-content {
+      background: #2563eb;
+      border-color: #3b82f6;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--mono);
+      text-transform: uppercase;
+    }
+
+    .badge-complete { background: rgba(52, 211, 153, 0.2); color: var(--success); border: 1px solid var(--success); }
+    .badge-incomplete { background: rgba(248, 113, 113, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+    .badge-na { background: rgba(148, 163, 184, 0.2); color: var(--text-muted); border: 1px solid var(--text-muted); }
+
+    .step-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      font-size: 13px;
+    }
+
+    .step-card-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .step-card-op {
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .chat-input-bar {
+      padding: 18px 24px;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .prompt-suggestions {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .pill-btn {
+      padding: 5px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .pill-btn:hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    .input-box {
+      display: flex;
+      gap: 10px;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 12px 16px;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+    }
+
+    /* Cases Explorer View */
+    .table-view {
+      width: 100%;
+      height: 100%;
+      flex-direction: column;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .table-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .search-box {
+      flex: 1;
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .select-filter {
+      padding: 10px 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .table-wrapper {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg-card);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      background: rgba(15, 23, 42, 0.8);
+      color: var(--text-muted);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-content {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 700px;
+      max-width: 90vw;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      font-size: 14px;
+    }
+
+    pre code {
+      display: block;
+      padding: 12px;
+      background: var(--bg-dark);
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 12px;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">G</div>
+      <div>
+        <div class="brand-title">Ghost Data Agent</div>
+        <div class="brand-subtitle">Deletion Audit System</div>
+      </div>
+    </div>
+
+    <nav class="nav-links">
+      <div class="nav-item active" onclick="switchTab('chat')">
+        <span>💬</span> AI Audit Assistant
+      </div>
+      <div class="nav-item" onclick="switchTab('cases')">
+        <span>📋</span> Case Explorer
+      </div>
+      <div class="nav-item" onclick="switchTab('rules')">
+        <span>📜</span> Deletion Rules
+      </div>
+      <div class="nav-item" onclick="switchTab('evaluation')">
+        <span>📊</span> Evaluation Report
+      </div>
+    </nav>
+
+    <div class="sidebar-stats">
+      <div class="stat-row">
+        <span>Total Requests:</span>
+        <span class="stat-val" id="stat-total">518</span>
+      </div>
+      <div class="stat-row">
+        <span>Complete:</span>
+        <span class="stat-val" id="stat-complete" style="color:var(--success)">362</span>
+      </div>
+      <div class="stat-row">
+        <span>Incomplete:</span>
+        <span class="stat-val" id="stat-incomplete" style="color:var(--danger)">156</span>
+      </div>
+      <div class="stat-row">
+        <span>Rules Active:</span>
+        <span class="stat-val">15</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main View -->
+  <main class="main-container">
+    <header class="header-bar">
+      <div class="header-left">
+        <h1 id="view-title">AI Deletion Audit Assistant</h1>
+      </div>
+      <div class="action-btns">
+        <button class="btn btn-primary" onclick="triggerRunAudit()">⚡ Run Full Audit</button>
+        <a class="btn" href="/api/download/output" target="_blank">⬇️ output.csv</a>
+      </div>
+    </header>
+
+    <!-- Tab 1: Chat Assistant -->
+    <section class="view-panel active chat-layout" id="panel-chat">
+      <div class="chat-messages" id="chat-messages">
+        <div class="message assistant">
+          <div class="msg-avatar">AG</div>
+          <div class="msg-content">
+            Hello! I am your <strong>Data Deletion Audit Agent</strong>. I audit deletion requests across account services, search indexes, analytics platforms, support archives, and backup snapshots to guarantee that ghost data doesn't persist.
+            <br><br>
+            You can ask me to:
+            <ul>
+              <li><strong>Audit a specific case</strong> (e.g. <code>Audit case_01</code> or <code>Audit case_11</code>)</li>
+              <li><strong>Check an email address</strong> (e.g. <code>Check amina.elmasri@gmail.com</code>)</li>
+              <li><strong>Explain findings</strong> (e.g. <code>Why is case_05 INCOMPLETE?</code>)</li>
+              <li><strong>Review deletion policy rules</strong> (e.g. <code>Explain Rule 15 on tombstones</code>)</li>
+              <li><strong>Inspect status metrics</strong> or trigger full pipeline audits</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-bar">
+        <div class="prompt-suggestions">
+          <button class="pill-btn" onclick="sendPrompt('Audit case_01')">Audit case_01</button>
+          <button class="pill-btn" onclick="sendPrompt('Why is case_05 INCOMPLETE?')">Why is case_05 INCOMPLETE?</button>
+          <button class="pill-btn" onclick="sendPrompt('Audit case_11')">Audit case_11</button>
+          <button class="pill-btn" onclick="sendPrompt('Audit case_15 (Active Data Flow)')">Audit case_15</button>
+          <button class="pill-btn" onclick="sendPrompt('Audit case_31 (Tombstone)')">Audit case_31</button>
+          <button class="pill-btn" onclick="sendPrompt('Explain Rule 15')">Explain Rule 15</button>
+          <button class="pill-btn" onclick="sendPrompt('Show summary metrics')">Show summary metrics</button>
+        </div>
+        <div class="input-box">
+          <input type="text" class="chat-input" id="chat-input" placeholder="Ask the Audit Agent about cases, rules, findings, or metrics..." onkeydown="handleKey(event)">
+          <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab 2: Case Explorer -->
+    <section class="view-panel table-view" id="panel-cases">
+      <div class="table-controls">
+        <input type="text" class="search-box" id="table-search" placeholder="Search case ID, email, status..." oninput="filterCases()">
+        <select class="select-filter" id="status-filter" onchange="filterCases()">
+          <option value="ALL">All Statuses</option>
+          <option value="COMPLETE">COMPLETE</option>
+          <option value="INCOMPLETE">INCOMPLETE</option>
+          <option value="NOT_APPLICABLE">NOT_APPLICABLE</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="cases-table">
+          <thead>
+            <tr>
+              <th>Case ID</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Steps</th>
+              <th>Audit At</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="cases-tbody">
+            <!-- Populated via API -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 3: Deletion Rules Reference -->
+    <section class="view-panel table-view" id="panel-rules">
+      <div class="table-wrapper" style="margin-top: 10px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Rule ID</th>
+              <th>Data Category</th>
+              <th>Condition</th>
+              <th>Required Action</th>
+            </tr>
+          </thead>
+          <tbody id="rules-tbody">
+            <!-- Populated via API -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Tab 4: Evaluation Report -->
+    <section class="view-panel table-view" id="panel-evaluation">
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:24px; overflow-y:auto; flex:1;">
+        <pre><code id="eval-markdown">Loading evaluation report...</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <!-- Case Inspection Modal -->
+  <div class="modal-backdrop" id="case-modal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="modal-title">Case Details</h3>
+        <button class="btn" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Details injected dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allCases = [];
+
+    async function init() {
+      await loadStats();
+      await loadCases();
+      await loadRules();
+      await loadEvaluation();
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        document.getElementById('stat-total').innerText = data.total_cases;
+        document.getElementById('stat-complete').innerText = data.status_counts.COMPLETE || 0;
+        document.getElementById('stat-incomplete').innerText = data.status_counts.INCOMPLETE || 0;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadCases() {
+      try {
+        const res = await fetch('/api/cases');
+        allCases = await res.json();
+        renderCases(allCases);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function renderCases(cases) {
+      const tbody = document.getElementById('cases-tbody');
+      tbody.innerHTML = '';
+      cases.forEach(c => {
+        const badgeClass = c.deletion_status === 'COMPLETE' ? 'badge-complete' : (c.deletion_status === 'INCOMPLETE' ? 'badge-incomplete' : 'badge-na');
+        const tr = document.createElement('tr');
+        tr.onclick = () => showCaseModal(c.case_id);
+        tr.innerHTML = `
+          <td style="font-family:var(--mono); font-weight:600;">${c.case_id}</td>
+          <td>${c.email}</td>
+          <td><span class="badge ${badgeClass}">${c.deletion_status}</span></td>
+          <td style="font-family:var(--mono);">${c.steps.length} steps</td>
+          <td style="color:var(--text-muted); font-size:12px;">${c.audit_at || 'N/A'}</td>
+          <td><button class="btn" style="padding:4px 8px; font-size:11px;" onclick="event.stopPropagation(); inspectCase('${c.case_id}')">Inspect</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filterCases() {
+      const search = document.getElementById('table-search').value.toLowerCase();
+      const status = document.getElementById('status-filter').value;
+      const filtered = allCases.filter(c => {
+        const matchSearch = c.case_id.toLowerCase().includes(search) || c.email.toLowerCase().includes(search);
+        const matchStatus = status === 'ALL' || c.deletion_status === status;
+        return matchSearch && matchStatus;
+      });
+      renderCases(filtered);
+    }
+
+    async function loadRules() {
+      try {
+        const res = await fetch('/api/rules');
+        const rules = await res.json();
+        const tbody = document.getElementById('rules-tbody');
+        tbody.innerHTML = '';
+        rules.forEach(r => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="font-family:var(--mono); font-weight:600;">${r.rule_id}</td>
+            <td><code>${r.data_category}</code></td>
+            <td style="color:var(--text-muted);">${r.condition}</td>
+            <td><strong>${r.required_action}</strong></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function loadEvaluation() {
+      try {
+        const res = await fetch('/api/evaluation');
+        const data = await res.json();
+        document.getElementById('eval-markdown').innerText = data.markdown || 'Evaluation report ready.';
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
+
+      if (tab === 'chat') {
+        document.querySelectorAll('.nav-item')[0].classList.add('active');
+        document.getElementById('panel-chat').classList.add('active');
+        document.getElementById('view-title').innerText = 'AI Deletion Audit Assistant';
+      } else if (tab === 'cases') {
+        document.querySelectorAll('.nav-item')[1].classList.add('active');
+        document.getElementById('panel-cases').classList.add('active');
+        document.getElementById('view-title').innerText = 'Deletion Case Explorer';
+      } else if (tab === 'rules') {
+        document.querySelectorAll('.nav-item')[2].classList.add('active');
+        document.getElementById('panel-rules').classList.add('active');
+        document.getElementById('view-title').innerText = 'Privacy & Deletion Policy Rules';
+      } else if (tab === 'evaluation') {
+        document.querySelectorAll('.nav-item')[3].classList.add('active');
+        document.getElementById('panel-evaluation').classList.add('active');
+        document.getElementById('view-title').innerText = 'Audit Accuracy & Evaluation Report';
+      }
+    }
+
+    async function inspectCase(caseId) {
+      switchTab('chat');
+      sendPrompt(`Audit ${caseId}`);
+    }
+
+    async function showCaseModal(caseId) {
+      const modal = document.getElementById('case-modal');
+      const title = document.getElementById('modal-title');
+      const body = document.getElementById('modal-body');
+      title.innerText = `Case Details: ${caseId}`;
+
+      const res = await fetch(`/api/case/${caseId}`);
+      const c = await res.json();
+
+      const badgeClass = c.deletion_status === 'COMPLETE' ? 'badge-complete' : (c.deletion_status === 'INCOMPLETE' ? 'badge-incomplete' : 'badge-na');
+
+      let stepsHtml = '';
+      c.steps.forEach(s => {
+        stepsHtml += `
+          <div class="step-card">
+            <div class="step-card-header">
+              <span>STEP ${s.step_no} — [${s.phase}]</span>
+              <span>${s.evidence_id ? 'EV: ' + s.evidence_id : 'NO EVIDENCE'}</span>
+            </div>
+            <div class="step-card-op">${s.operation} &rarr; <code>${s.state}</code></div>
+            <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">System: ${s.system_id} | Resource: ${s.resource_id}</div>
+          </div>
+        `;
+      });
+
+      body.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <strong>Email:</strong> ${c.email}<br>
+            <span style="font-size:12px; color:var(--text-muted);">Audit Timestamp: ${c.audit_at}</span>
+          </div>
+          <div><span class="badge ${badgeClass}">${c.deletion_status}</span></div>
+        </div>
+        <div>
+          <strong>Deletion Steps (${c.steps.length}):</strong>
+          ${stepsHtml || '<p style="color:var(--text-muted); margin-top:8px;">No steps (NOT_APPLICABLE).</p>'}
+        </div>
+        <div>
+          <strong>Raw JSON:</strong>
+          <pre><code>${JSON.stringify(c.steps, null, 2)}</code></pre>
+        </div>
+      `;
+
+      modal.classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('case-modal').classList.remove('open');
+    }
+
+    function sendPrompt(text) {
+      document.getElementById('chat-input').value = text;
+      sendMessage();
+    }
+
+    function handleKey(e) {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      const container = document.getElementById('chat-messages');
+
+      // Append user msg
+      const userMsg = document.createElement('div');
+      userMsg.className = 'message user';
+      userMsg.innerHTML = `
+        <div class="msg-avatar">U</div>
+        <div class="msg-content">${text}</div>
+      `;
+      container.appendChild(userMsg);
+      container.scrollTop = container.scrollHeight;
+
+      // Loading assistant msg
+      const assistMsg = document.createElement('div');
+      assistMsg.className = 'message assistant';
+      assistMsg.innerHTML = `
+        <div class="msg-avatar">AG</div>
+        <div class="msg-content">Analyzing audit request...</div>
+      `;
+      container.appendChild(assistMsg);
+      container.scrollTop = container.scrollHeight;
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        assistMsg.querySelector('.msg-content').innerHTML = data.reply_html || data.reply;
+      } catch (err) {
+        assistMsg.querySelector('.msg-content').innerHTML = `Error contacting audit engine: ${err.message}`;
+      }
+      container.scrollTop = container.scrollHeight;
+    }
+
+    async function triggerRunAudit() {
+      if (!confirm('Run deletion audit agent across all cases now?')) return;
+      try {
+        const res = await fetch('/api/run-audit', { method: 'POST' });
+        const data = await res.json();
+        alert(`Audit finished successfully! Processed ${data.row_count} cases in ${data.elapsed.toFixed(2)}s.`);
+        await loadStats();
+        await loadCases();
+      } catch (e) {
+        alert('Error running audit: ' + e.message);
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
+
